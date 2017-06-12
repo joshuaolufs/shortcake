@@ -9,7 +9,7 @@ local args = { ... }
 local expressionUnit = "%[(.-)%]"
 local loopUnit = "[%(%)]+%d+"
 local singleLoop = "([x<>^vfudcaby])(%d+)"
-local multiLoop = "(%([x<>^vfudcabsryp',igk!]-%))(%d+)"
+local multiLoop = "(%([x<>^vfudcabsryp',igk]-%))(%d+)"
 local jitterLeft = "<>"
 local jitterRight = "><"
 local longTurnLeft = "<<<"
@@ -111,17 +111,17 @@ function processFlags(codeIn)
 		-- process the 'i' flag
 		if current == "i" then
 			config.hFlipBitOn = not config.hFlipBitOn
-		elseif current == "<" and config.hFlipBitOn and nextCommand ~= "!" then output = output .. ">"
-		elseif current == ">" and config.hFlipBitOn and nextCommand ~= "!" then output = output .. "<"
+		elseif current == "<" and config.hFlipBitOn then output = output .. ">"
+		elseif current == ">" and config.hFlipBitOn then output = output .. "<"
 		-- process the 'g' flag
 		elseif current == "g" then
 			config.vFlipBitOn = not config.vFlipBitOn
-		elseif current == "^" and config.vFlipBitOn and nextCommand ~= "!" then output = output .. "v"
-		elseif current == "v" and config.vFlipBitOn and nextCommand ~= "!" then output = output .. "^"
+		elseif current == "^" and config.vFlipBitOn then output = output .. "v"
+		elseif current == "v" and config.vFlipBitOn then output = output .. "^"
 		-- process the include up and down flags
 		elseif current == "'" then config.includeUp = not config.includeUp
 		elseif current == "," then config.includeDown = not config.includeDown
-		elseif current == 'x' and nextCommand ~= "!" then
+		elseif current == 'x' then
 			local temp = "x"
 			if config.includeUp then temp = temp .. "u" end
 			if config.includeDown then temp = temp .. "d" end
