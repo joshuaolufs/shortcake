@@ -14,11 +14,6 @@ local jitterLeft = "<>"
 local jitterRight = "><"
 local longTurnLeft = "<<<"
 local longTurnRight = ">>>"
-local exampleMap = {}
-	exampleMap["layer"] = "((x[A-1]>x>i)[B-1])[B>1]x[A-1]"
-	exampleMap["stripmine"] = "((x[A-1]>x>i)[B-1])[B>1]x[A-1]((v>>((x[A-1]>x>i)[B-1])[B>1]x[A-1])[C-1])[C>1]"
-	exampleMap["simplebranchmine"] = "k',(x[C+1]b<(xBb<<',xB',)2>)A"
-	exampleMap["branchmine"] = "',(x[(C+1)*2]<(xBb<',xC',xb<xBb)2>)[math.floor(A/2)](x[C+1]<xBb<<(xBb)2)[A%2]"
 
 -- Validate Args / Print Usage
 if #args < 1 then
@@ -265,13 +260,15 @@ elseif args[1] == "remove" then
 elseif args[1] == "get" then
 	if #args < 2 then
 		print("Usage: shortcake get <program name>")
-		print("Available Programs")
-		print("layer stripmine simplebranchmine branchmine")
+		print("Available Programs:")
+		for key,value in pairs(config.programs) do
+			print("- " .. key)
+		end
 		return
 	end
 	local program_name = args[2]
-	if exampleMap[program_name] ~= nil then
-		shell.run("shortcake", "save", program_name, exampleMap[program_name])
+	if config.programs[program_name] ~= nil then
+		shell.run("shortcake", "save", program_name, config.programs[program_name])
 	else
 		print("No such program: " .. program_name)
 	end
