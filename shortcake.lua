@@ -54,7 +54,10 @@ function evalExpressions(codeIn)
 		local result = eval()
 		
 		-- convert the output to an integer
-		if type(result) == "number" then resultOut = tostring(math.floor(result + 0.5)) -- round any numerical result
+		if type(result) == "number" then 
+			resultOut = math.floor(result + 0.5) -- round any numerical result
+			resultOut = math.max(0, resultOut) -- ensure the result is non-negative
+			resultOut = tostring(resultOut)
 		elseif type(result) == "boolean" then
 			if result == true then
 				resultOut = "1" -- true = 1
