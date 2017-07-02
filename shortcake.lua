@@ -247,7 +247,11 @@ elseif args[1] == "run" then
 
 -- Update the files
 elseif args[1] == "update" then
-	shell.run("pastebin", "run", "AyRdWn84")
+	if (config.stable) then
+        shell.run("pastebin", "run", "AyRdWn84") -- update from the stable channel
+    else
+        shell.run("pastebin", "run", "zP17pfXi") -- update from the development channel
+    end
 	return
 
 -- Uninstall

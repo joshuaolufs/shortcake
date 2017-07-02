@@ -1,4 +1,5 @@
 -- Config Options --
+stable = true -- use the stable channel (true) or the development channel (false) for updates
 variables = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 hFlipBitOn = false -- changes left and right, h = horizontal
 vFlipBitOn = false -- changes up and down, v = vertical
