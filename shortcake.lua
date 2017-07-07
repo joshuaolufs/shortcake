@@ -17,8 +17,8 @@ local longTurnRight = ">>>"
 
 -- Validate Args / Print Usage
 if #args < 1 then
-	print("You must specify a task.")
-	print("Usage: shortcake <task> [params]")
+	print("You must specify a function.")
+	print("Usage: shortcake <function> [params]")
 	return
 end
 
@@ -51,8 +51,8 @@ function evalExpressions(codeIn)
 		-- convert the output to an integer
 		if type(result) == "number" then 
 			resultOut = math.floor(result + 0.5) -- round any numerical result
-			resultOut = math.max(0, resultOut) -- ensure the result is non-negative
-			resultOut = tostring(resultOut)
+			resultOut = math.max(0, resultOut) -- limit the result to non-negative numbers
+			resultOut = tostring(resultOut) -- convert the result for insertion into the program string
 		elseif type(result) == "boolean" then
 			if result == true then
 				resultOut = "1" -- true = 1
@@ -104,7 +104,7 @@ end
 
 -- Process any static flags
 function processFlags(codeIn)
-	print("- Processing Flags")
+	if config.printStatus then print("- Processing Flags") end
 	local output = ""
 	for i=1, string.len(codeIn) do
 		local current = string.sub(codeIn, i, i) -- get the current command
@@ -138,7 +138,7 @@ function processFlags(codeIn)
 end
 
 function cleanCode(codeIn)
-	print("- Optimizing Code")
+	if config.printStatus then print("- Optimizing Code") end
 	codeIn = string.gsub(codeIn, jitterLeft, "")
 	codeIn = string.gsub(codeIn, jitterRight, "")
 	codeIn = string.gsub(codeIn, longTurnLeft, ">")
@@ -151,8 +151,6 @@ end
 
 -- Run the Program
 function doit(codeIn)
-	print()
-	print("Running Program")
 	for i=1, string.len(codeIn) do
 		-- get the next command
 		local current = string.sub(codeIn, i, i)	
@@ -175,26 +173,27 @@ function doit(codeIn)
 		elseif current == 'k' then t.keepOne = not keepOne
 		end
 	end
-	
-	print()
-	print("Program Finished")
-	print("Blocks Mined: " .. t.totalBroken)
-	print("Blocks Traveled: " .. t.totalTraveled)
-	print()
 end
 
 -- Compile and Run the Program
 function mainProgram(code)
+	term.clear()
+	term.setCursorPos(1,1)
+	print("Raw Code: " .. code)
+
 	-- Compile Code
 	code = subParamValues(code, config.variables)
 	code = evalExpressions(code)
 	code = unwindLoops(code)
 	code = processFlags(code)
 	code = cleanCode(code)
-	print(code)
-	
+	print("Compiled: " .. code)
+
 	-- Run Code
+	print("Running...")
 	doit(code)
+	print("Finished!")
+
 	return
 end
 
@@ -213,7 +212,9 @@ if args[1] == "save" then
 		return 
 	end
 	
-	saveFile.writeLine("-- " .. program)
+	saveFile.writeLine('-- "' .. program .. '"')
+	saveFile.writeLine("")
+	saveFile.writeLine("-- Don't alter code below this line, it is required to make your shortcake code run.")
 	saveFile.writeLine("local args = { ... }")
 	saveFile.writeLine("executeString = 'shortcake run " .. saveFileName .. "'")
 	saveFile.writeLine("for i=1,#args do")
@@ -248,16 +249,42 @@ elseif args[1] == "run" then
 -- Update the files
 elseif args[1] == "update" then
 	if (config.stable) then
-        shell.run("pastebin", "run", "AyRdWn84") -- update from the stable channel
-    else
-        shell.run("pastebin", "run", "zP17pfXi") -- update from the development channel
-    end
+	else
+	end
 	return
 
 -- Uninstall
 elseif args[1] == "remove" then
 	shell.run("delete", "shortcake")
 	shell.run("delete", "sc_files")
+	return
+
+-- New program
+elseif args[1] == "new" then
+	if #args < 2 then
+		print("Usage: shortcake new <program_name>")
+		return
+	end
+	local name = args[2]
+	local saveFileName = name
+	local saveFile = fs.open(saveFileName, "w")
+	if not saveFile then 
+		print("Save Failed")
+		return 
+	end
+	saveFile.writeLine('-- ""')
+	saveFile.writeLine("")
+	saveFile.writeLine("-- Don't alter code below this line, it is required to make your shortcake code run.")
+	saveFile.writeLine("local args = { ... }")
+	saveFile.writeLine("executeString = 'shortcake run " .. saveFileName .. "'")
+	saveFile.writeLine("for i=1,#args do")
+	saveFile.writeLine("	executeString = executeString .. ' ' .. args[i]")
+	saveFile.writeLine("end")
+	saveFile.writeLine("shell.run(executeString)")
+	saveFile.writeLine("return")
+
+	saveFile.close()
+	print("New program created: " .. saveFileName)
 	return
 
 -- get and example program
