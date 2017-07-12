@@ -96,8 +96,42 @@ function unwindLoops(codeIn)
 	if config.printStatus then print("- Unwinding Loops") end
 	-- if there are no numbers then there are no loops so pass the code through
 	if string.find(codeIn, "%d") == nil then return codeIn end
-	
-	-- first pass, replace all single instruction loops
+
+	-- fist pass, expand all multi-loops
+	while string.find(codeIn, loopUnit) ~= nil do
+		codeIn = string.gsub(codeIn, multiLoop, function(s1, s2) 
+			if tonumber(s2) > 0 then
+				-- repeat the string the desired number of times
+				local tempResult = string.rep(string.sub(s1,2,-2), tonumber(s2),' ')
+
+				-- get n1 counts
+				local temp, totalCount = string.gsub(tempResult, "n", "")
+				local temp1, repCount = string.gsub(s1, "n1", "")
+				local count = totalCount + 1
+
+				-- step through, replacing n1's with progressively smaller ints, starting with count
+				tempResult = string.gsub(tempResult, "n1", function()
+					count = count - 1
+					return tostring(math.ceil(count/repCount))
+				end)
+
+				-- optionally we could start at 0 and go up
+
+				-- replace all n# in remaining string with n[#-1]
+				tempResult = string.gsub(tempResult, "n([0-9]+)", function(num)
+					return "n" .. tostring(tonumber(num)-1)
+				end)
+
+				-- return the result
+				return tempResult
+			else
+				return ""
+			end
+		end)
+	end
+	if config.printStatus then print("  - Pass 1 Complete") end
+
+	-- second pass, expand all single command loops
 	codeIn = string.gsub(codeIn, singleLoop, function(s1, s2) 
 		if tonumber(s2) > 0 then 
 			return string.rep(s1, tonumber(s2),' ') 
@@ -105,18 +139,6 @@ function unwindLoops(codeIn)
 			return "" 
 		end 
 	end)
-	if config.printStatus then print("  - Pass 1 Complete") end
-	
-	-- second pass, replace all other loops from the inside out
-	while string.find(codeIn, loopUnit) ~= nil do
-		codeIn = string.gsub(codeIn, multiLoop, function(s1, s2) 
-			if tonumber(s2) > 0 then
-				return string.rep(string.sub(s1,2,-2), tonumber(s2),' ') 
-			else
-				return ""
-			end
-		end)
-	end
 	if config.printStatus then print("  - Pass 2 Complete") end
 	
 	return codeIn
@@ -208,6 +230,10 @@ end
 
 -- Run the Program
 function doit(codeIn)
+	-- initialize turtle state
+	turtle.select(1)
+
+	-- loop over the string interpreting the commands
 	for i=1, string.len(codeIn) do
 		-- get the next command
 		local current = string.sub(codeIn, i, i)	
@@ -277,25 +303,32 @@ end
 -------------------------------------------------
 
 -- Save the program
+-- <program_name> <program_code>
 if args[1] == "save" then
+	clear()
 	if #args < 3 then
-		print("Usage: shortcake save <name> <program>")
+		print("Usage: shortcake save <program_name> <program_code>")
 		return
 	end
 	local name = args[2]
 	local program = args[3]
-	local saveFileName = name
-	local saveFile = fs.open(saveFileName, "w")
+
+	local saveFile = fs.open(name, "w")
 	if not saveFile then 
 		print("Save Failed")
 		return 
 	end
 	
 	saveFile.writeLine('-- "' .. program .. '"')
+	saveFile.writeLine("-- Move: x ^ v < >")
+	saveFile.writeLine("-- Break: [f]orward, [u]p, [d]own")
+	saveFile.writeLine("-- Place: [c]enter, [a]bove, [b]elow")
+	saveFile.writeLine("-- Other: [s]uck, [r]efuel, c[y]cle, dro[p]")
+	saveFile.writeLine("-- Craft: #")
 	saveFile.writeLine("")
 	saveFile.writeLine("-- Don't alter code below this line, it is required to make your shortcake code run.")
 	saveFile.writeLine("local args = { ... }")
-	saveFile.writeLine("executeString = 'shortcake run " .. saveFileName .. "'")
+	saveFile.writeLine("executeString = 'shortcake run " .. name .. "'")
 	saveFile.writeLine("for i=1,#args do")
 	saveFile.writeLine("	executeString = executeString .. ' ' .. args[i]")
 	saveFile.writeLine("end")
@@ -303,20 +336,29 @@ if args[1] == "save" then
 	saveFile.writeLine("return")
 
 	saveFile.close()
-	print("Program saved as: " .. saveFileName)
+
+	local file = fs.open("sc_files/dependents", "a")
+	if not file then 
+		print("Failed to update dependents")
+		return 
+	end
+	file.writeLine(name)
+	file.close()
+
+	print("Program saved as: " .. name)
 	return
 
 -- Run the program
+-- <program_name> [params]
 elseif args[1] == "run" then
 	if #args < 2 then
-		print("Usage: shortcake run <program name> [params]")
+		print("Usage: shortcake run <program_name> [params]")
 		return
 	end
-	--local saveFileName = os.getComputerLabel() .. "_" .. args[2]
 	local saveFileName = args[2]
 	local saveFile = fs.open(saveFileName, "r")
 	if not saveFile then 
-		print("Couldn't load program")
+		print("Couldn't run program")
 		return 
 	end
 	local program = string.sub(saveFile.readLine(), 4)
@@ -327,17 +369,52 @@ elseif args[1] == "run" then
 
 -- Update the files
 elseif args[1] == "update" then
-	if (config.stable) then
-		shell.run("pastebin", "run", "AyRdWn84") -- update from the stable channel
+	local channel = args[2] or config.channel
+	clear()
+	print("Updating from " .. channel .. " channel")
+	print("")
+	if (channel == "stable") then
+		shell.run("pastebin run AyRdWn84") -- update from the stable channel
+	elseif (channel == "dev") then
+		shell.run("pastebin run zP17pfXi") -- update from the development channel
 	else
-		shell.run("pastebin", "run", "zP17pfXi") -- update from the development channel
+		print(channel .. " is not a valid channel")
 	end
 	return
 
 -- Uninstall
 elseif args[1] == "uninstall" then
-	shell.run("delete", "shortcake")
-	shell.run("delete", "sc_files")
+	clear()
+	print("Uninstalling Shortcake ... ")
+	print("")
+
+	if fs.exists("sc_files/dependents") then
+		print("Deleting shortcake programs.")
+		local file = fs.open("sc_files/dependents", "r")
+		if not file then 
+			print("Failed to uninstall. Dependents error.")
+			return 
+		end
+		local line = file.readLine()
+		local contents = {}
+		while line do
+			table.insert(contents, line)
+			line = file.readLine()
+		end
+		file.close()
+
+		for key,value in pairs(contents) do
+			if value ~= "" then fs.delete(value) end
+		end
+	end
+
+	print("Deleting core files.")
+	fs.delete("shortcake")
+	fs.delete("sc_files")
+	fs.delete("sc_errors")
+
+	print("")
+	print("Uninstall complete")
 	return
 
 -- About
@@ -348,7 +425,50 @@ elseif args[1] == "about" then
 	print("Author: metamilo")
 	print("Version: " .. version)
 	return
-	
+
+-- Delete
+elseif args[1] == "delete" then
+	clear()
+	if #args < 2 then
+		print("Usage: shortcake delete <program_name>")
+		return
+	end
+	local name = args[2]
+
+	-- delete the file
+	fs.delete(name)
+
+	-- read the file and remove the deleted file from the list
+	local file = fs.open("sc_files/dependents", "r")
+	if not file then 
+		print("Failed to update dependents")
+		return 
+	end
+
+	local line = file.readLine()
+	local contents = {}
+	while line do
+		if line ~= name then
+			table.insert(contents, line)
+		end
+		line = file.readLine()
+	end
+	file.close()
+
+	-- save the list back to the file
+	file = fs.open("sc_files/dependents", "w")
+	if not file then 
+		print("Failed to update dependents")
+		return 
+	end
+	for key,value in pairs(contents) do
+		file.writeLine(value)
+	end
+	file.close()
+
+	print("Program " .. name .. " deleted successfully")
+	return
+
 -- Help
 elseif args[1] == "help" then
 	clear()
@@ -398,22 +518,29 @@ elseif args[1] == "help" then
 
 -- New program
 elseif args[1] == "new" then
+	clear()
 	if #args < 2 then
 		print("Usage: shortcake new <program_name>")
 		return
 	end
+
 	local name = args[2]
-	local saveFileName = name
-	local saveFile = fs.open(saveFileName, "w")
+	local saveFile = fs.open(name, "w")
 	if not saveFile then 
-		print("Save Failed")
+		print("Failed to create program")
 		return 
 	end
+
 	saveFile.writeLine('-- ""')
+	saveFile.writeLine("-- Move: x ^ v < >")
+	saveFile.writeLine("-- Break: [f]orward, [u]p, [d]own")
+	saveFile.writeLine("-- Place: [c]enter, [a]bove, [b]elow")
+	saveFile.writeLine("-- Other: [s]uck, [r]efuel, c[y]cle, dro[p]")
+	saveFile.writeLine("-- Craft: #")
 	saveFile.writeLine("")
 	saveFile.writeLine("-- Don't alter code below this line, it is required to make your shortcake code run.")
 	saveFile.writeLine("local args = { ... }")
-	saveFile.writeLine("executeString = 'shortcake run " .. saveFileName .. "'")
+	saveFile.writeLine("executeString = 'shortcake run " .. name .. "'")
 	saveFile.writeLine("for i=1,#args do")
 	saveFile.writeLine("	executeString = executeString .. ' ' .. args[i]")
 	saveFile.writeLine("end")
@@ -421,17 +548,29 @@ elseif args[1] == "new" then
 	saveFile.writeLine("return")
 
 	saveFile.close()
-	print("New program created: " .. saveFileName)
+
+	local file = fs.open("sc_files/dependents", "a")
+	if not file then 
+		print("Failed to update dependents")
+		return 
+	end
+	file.writeLine(name)
+	file.close()
+
+	print("New program created: " .. name)
 	return
 
--- get and example program
+-- Get an example program
 elseif args[1] == "get" then
+	clear()
 	if #args < 2 then
 		print("Usage: shortcake get <program name>")
 		print("Available Programs:")
+		local resultString = ""
 		for key,value in pairs(config.programs) do
-			print("- " .. key)
+			resultString = resultString .. " " .. key
 		end
+		print(resultString)
 		return
 	end
 	local program_name = args[2]
@@ -441,4 +580,7 @@ elseif args[1] == "get" then
 		print("No such program: " .. program_name)
 	end
 	return
+else
+	print(args[1] .. " is not a shortcake function.")
+	shell.run("shortcake help")
 end
