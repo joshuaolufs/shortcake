@@ -2,23 +2,43 @@
 os.loadAPI("./sc_files/config")
 os.loadAPI("./sc_files/t")
 
--- Load Argument List
-local args = { ... }
-
 -- Set Regular Expression Strings
 local expressionUnit = "%[(.-)%]"
 local loopUnit = "[%(%)]+%d+"
-local singleLoop = "([x<>^vfudcaby])(%d+)"
-local multiLoop = "(%([x<>^vfudcabsryp',igk]-%))(%d+)"
+local singleLoop = "([x<>^vfudcaby#])(%d+)"
+local multiLoop = "(%([x<>^vfudcabsryp',igkn0-9#]-%))(%d+)"
 local jitterLeft = "<>"
 local jitterRight = "><"
 local longTurnLeft = "<<<"
 local longTurnRight = ">>>"
+local moveSet = "[x^v]"
+local commandSet = "[x<>^vfudcabsrypk#%s]"
+
+-- Version
+local version = 1.1
+
+-------------------------------------------------
+-- Helper Functions
+-------------------------------------------------
+
+function clear()
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+-------------------------------------------------
+-- Argument Handling
+-------------------------------------------------
+
+-- Load Argument List
+local args = { ... }
 
 -- Validate Args / Print Usage
 if #args < 1 then
+	clear()
 	print("You must specify a function.")
 	print("Usage: shortcake <function> [params]")
+	print("Functions: about delete get help new run save uninstall update")
 	return
 end
 
@@ -145,6 +165,43 @@ function cleanCode(codeIn)
 	codeIn = string.gsub(codeIn, longTurnRight, "<")
 	return codeIn
 end
+
+function validateCode(rawIn, compiledIn)
+	local unquoted = string.sub(compiledIn, 2, -2)
+	local badString = string.gsub(unquoted, commandSet, ".") or ""
+	local length = string.len(string.gsub(unquoted, commandSet, ""))
+	
+	-- delete the error file to remove clutter
+	fs.delete("sc_errors")
+
+	if length > 0 then
+		local file = fs.open("sc_errors", "w")
+		if not file then 
+			print("Failed to save errors to file.")
+			return 
+		end
+
+		file.writeLine('Raw Code: ' .. string.len(rawIn))
+		file.writeLine(rawIn)
+		file.writeLine('')
+		file.writeLine('Compiled Code: ' .. string.len(compiledIn))
+		file.writeLine(compiledIn)
+		file.writeLine('')
+		file.writeLine('Bad Code: ' .. length)
+		file.writeLine(badString)
+		
+		file.close()
+
+		term.clear()
+		term.setCursorPos(1,1)
+		print("Code failed to validate")
+		print("See error file 'sc_errors' for details")
+		
+		return false
+	end
+	return true
+end
+
 -------------------------------------------------
 -- Execution Functions
 -------------------------------------------------
@@ -170,16 +227,17 @@ function doit(codeIn)
 		elseif current == "y" then t.cycleSlot()
 		elseif current == "s" then t.suck()
 		elseif current == "r" then t.refuel()
-		elseif current == 'k' then t.keepOne = not keepOne
+		elseif current == 'k' then t.keepOne = not t.keepOne
+		elseif current == '#' then turtle.craft(1)
 		end
 	end
 end
 
 -- Compile and Run the Program
 function mainProgram(code)
-	term.clear()
-	term.setCursorPos(1,1)
-	print("Raw Code: " .. code)
+	local raw = code
+	clear()
+	print("Raw Code: " .. raw)
 
 	-- Compile Code
 	code = subParamValues(code, config.variables)
@@ -187,15 +245,36 @@ function mainProgram(code)
 	code = unwindLoops(code)
 	code = processFlags(code)
 	code = cleanCode(code)
-	print("Compiled: " .. code)
+
+	-- Check validity of compiled code
+	if not validateCode(raw, code) then return end
+	
+	-- Analyze code
+	local programLength = string.len(code)
+	if programLength > 100 then
+		print("Compiled: " .. programLength .. " commands")
+	else
+		print("Compiled: " .. code)
+	end
+	local temp, programFuelUsage = string.gsub(code, moveSet, "")
+	local currentFuel = turtle.getFuelLevel()
+	print("Fuel required: " .. programFuelUsage .. " out of " .. currentFuel)
+	if programFuelUsage > currentFuel then
+		print("Not enough fuel, add more and try again")
+		return
+	end
 
 	-- Run Code
 	print("Running...")
 	doit(code)
 	print("Finished!")
-
 	return
 end
+
+
+-------------------------------------------------
+-- Shortcake Usage Functions
+-------------------------------------------------
 
 -- Save the program
 if args[1] == "save" then
