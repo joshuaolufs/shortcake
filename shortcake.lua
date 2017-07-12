@@ -249,14 +249,72 @@ elseif args[1] == "run" then
 -- Update the files
 elseif args[1] == "update" then
 	if (config.stable) then
+		shell.run("pastebin", "run", "AyRdWn84") -- update from the stable channel
 	else
+		shell.run("pastebin", "run", "zP17pfXi") -- update from the development channel
 	end
 	return
 
 -- Uninstall
-elseif args[1] == "remove" then
+elseif args[1] == "uninstall" then
 	shell.run("delete", "shortcake")
 	shell.run("delete", "sc_files")
+	return
+
+-- About
+elseif args[1] == "about" then
+	clear()
+	print("About Shortcake")
+	print("")
+	print("Author: metamilo")
+	print("Version: " .. version)
+	return
+	
+-- Help
+elseif args[1] == "help" then
+	clear()
+	if #args < 2 then
+		print("Usage: shortcake help <topic>")
+		print("Topics: about delete get new run save uninstall update")
+		print("")
+		return
+	end
+	if args[2] == "about" then
+		print("Help -> About")
+		print("Params: none")
+		print("Displays some basic information about Shortcake")
+	elseif args[2] == "delete" then
+		print("Help -> Delete")
+		print("Params: <program_name>")
+		print("Deletes a shortcake program, and removes it from the dependents list.")
+	elseif args[2] == "get" then
+		print("Help -> Get")
+		print("Params: <program_name>")
+		print("Extracts an example program from the config file into a shortcake program")
+	elseif args[2] == "new" then
+		print("Help -> New")
+		print("Params: <program_name>")
+		print("Creates a new blank shortcake program with the given name")
+	elseif args[2] == "run" then
+		print("Help -> Run")
+		print("Params: <program_name> [program_params]")
+		print("Runs the given shortcake program with the given parameters")
+	elseif args[2] == "save" then
+		print("Help -> Save")
+		print("Params: <program_name> <program_code>")
+		print("Creates a shortcake program with the given name and code")
+	elseif args[2] == "uninstall" then
+		print("Help -> Uninstall")
+		print("Params: none")
+		print("Deletes all shortcake files, including your shortcake programs")
+	elseif args[2] == "update" then
+		print("Help -> Update")
+		print("Params: [channel]")
+		print("Redownloads the core shortcake files, leaving your programs intact")
+		print("If [channel] is set it updates from the specified channel, otherwise it uses the channel set in the config file")
+	else
+		print("Sorry, I can't help you with that")
+	end
 	return
 
 -- New program
