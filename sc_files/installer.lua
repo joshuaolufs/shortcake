@@ -1,11 +1,12 @@
 -- Delete any old versions
-shell.run("delete", "shortcake")
-shell.run("delete", "sc_files")
+print("Removing old files, if they exist")
+fs.delete("shortcake")
+fs.delete("sc_files/config")
+fs.delete("sc_files/t")
 
 -- Get new files
+print("Retrieving files from pastebin")
 shell.run("pastebin", "get", "xerNNRAH", "shortcake") -- Download the interpreter
-shell.run("mkdir", "sc_files") -- Make a directory for the files
-shell.run("cd", "sc_files") -- Navigate to the shortcake directory
-shell.run("pastebin", "get", "FFwyiJrH", "t") -- Download the function library
-shell.run("pastebin", "get", "DSreWan8", "config") -- Download the config file
-shell.run("cd", "..") -- Navigate back to the starting directory
+fs.makeDir("sc_files") -- Make a directory for the files
+shell.run("pastebin", "get", "FFwyiJrH", "sc_files/t") -- Download the function library
+shell.run("pastebin", "get", "DSreWan8", "sc_files/config") -- Download the config file
