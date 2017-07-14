@@ -15,7 +15,10 @@ local moveSet = "[x^v]"
 local commandSet = "[x<>^vfudcabsrypk#%s]"
 
 -- Version
-local version = 1.1
+local version = 1.2
+
+-- Flag tracking vars
+local keepOne = false
 
 -------------------------------------------------
 -- Helper Functions
@@ -246,15 +249,15 @@ function doit(codeIn)
 		elseif current == "f" then t.dig()
 		elseif current == "u" then t.digUp()
 		elseif current == "d" then t.digDown()
-		elseif current == "c" then t.placeForward()
-		elseif current == "a" then t.placeUp()
-		elseif current == "b" then t.placeDown()
-		elseif current == "p" then t.dropDown()
+		elseif current == "c" then t.placeForward(keepOne)
+		elseif current == "a" then t.placeUp(keepOne)
+		elseif current == "b" then t.placeDown(keepOne)
+		elseif current == "p" then t.smartDrop(keepOne)
 		elseif current == "y" then t.cycleSlot()
 		elseif current == "s" then t.suck()
-		elseif current == "r" then t.refuel()
-		elseif current == 'k' then t.keepOne = not t.keepOne
-		elseif current == '#' then turtle.craft(1)
+		elseif current == "r" then t.refuel(keepOne)
+		elseif current == "k" then keepOne = not keepOne
+		elseif current == "#" then turtle.craft(1)
 		end
 	end
 end

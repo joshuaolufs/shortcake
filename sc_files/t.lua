@@ -6,22 +6,31 @@ WEST = 3 -- negative x direction
 EAST = 1 -- positive x direction
 SOUTH = 2 -- negative y direction
 rawCode = ""
-keepOne = false
 
 -- Detection Functions --
-function getBlockName()
-	local result = nil
-	if turtle.detectDown() then
+function getBlockName(dir)
+	if dir == "down" and turtle.detectDown() then
 		local success, data = turtle.inspectDown()
 		if success then
-			result = data.name
+			return data.name
+		end
+	elseif dir == "up" and turtle.detectUp() then
+		local success, data = turtle.inspectUp()
+		if success then
+			return data.name
+		end
+	else 
+		turtle.detect()
+		local success, data = turtle.inspect()
+		if success then
+			return data.name
 		end
 	end
-	return result
+	return nil
 end
 
-function isBlockInList(blockList)
-	blockName = getBlockName()
+function isBlockInList(blockList, dir)
+	blockName = getBlockName(dir)
 	success = false
 	if blockName ~= nil then
 		for i=1, #blockList do
@@ -198,10 +207,10 @@ function down()
 end
 
 -- Placement Functions
-function placeUp()
+function placeUp(keep)
 	if turtle.getItemCount() > 0 then
 		digUp()
-		if keepOne then
+		if keep then
 			if turtle.getItemCount() > 1 then
 				turtle.placeUp()
 			end
@@ -211,10 +220,10 @@ function placeUp()
 	end
 end
 
-function placeDown()
+function placeDown(keep)
 	if turtle.getItemCount() > 0 then
 		digDown()
-		if keepOne then
+		if keep then
 			if turtle.getItemCount() > 1 then
 				turtle.placeDown()
 			end
@@ -224,10 +233,10 @@ function placeDown()
 	end
 end
 
-function placeForward()
+function placeForward(keep)
 	if turtle.getItemCount() > 0 then
 		dig()
-		if keepOne then
+		if keep then
 			if turtle.getItemCount() > 1 then
 				turtle.place()
 			end
@@ -238,12 +247,31 @@ function placeForward()
 end
 
 -- Dropping Functions
-function dropDown(keepOne)
-	if turtle.getItemCount() > 0 then
-		if keepOne then
+function smartDrop(keep)
+	if turtle.getItemCount() == 0 then return end
+	if string.find(getBlockName("forward") or "", "[Cc]hest") ~= nil then
+		if keep then
+			turtle.drop(turtle.getItemCount()-1)
+		else
+			turtle.drop()
+		end
+	elseif string.find(getBlockName("up") or "", "[Cc]hest") ~= nil then
+		if keep then
+			turtle.dropUp(turtle.getItemCount()-1)
+		else
+			turtle.dropUp()
+		end
+	elseif string.find(getBlockName("down") or "", "[Cc]hest") ~= nil then
+		if keep then
 			turtle.dropDown(turtle.getItemCount()-1)
 		else
 			turtle.dropDown()
+		end
+	else
+		if keep then
+			turtle.drop(turtle.getItemCount()-1)
+		else
+			turtle.drop()
 		end
 	end
 end
@@ -262,9 +290,9 @@ function suck()
 	turtle.suckDown()
 end
 
-function refuel()
+function refuel(keep)
 	if turtle.getItemCount() > 0 then
-		if keepOne then
+		if keep then
 			turtle.refuel(turtle.getItemCount()-1)
 		else
 			turtle.refuel()
